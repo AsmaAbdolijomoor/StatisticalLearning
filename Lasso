@@ -1,0 +1,61 @@
+from sklearn.linear_model import RidgeCV
+import pandas as pd
+import numpy as np
+import statsmodels.formula.api as smf
+from sklearn.linear_model import LassoCV
+
+np.random.seed(1)
+x1 = np.random.normal(loc = 0, scale=1, size = 60)
+x2 = np.random.normal(loc = 0, scale=1, size = 60)
+x3 = np.random.normal(loc = 0, scale=1, size = 60)
+x4 = np.random.normal(loc = 0, scale=1, size = 60)
+
+allx = np.vstack((x1, x2, x3, x4))
+allx = allx.T
+#allx
+
+cml = np.corrcoef(allx.T)
+#cml
+
+chol1 = np.linalg.cholesky(cml).T
+#chol1
+
+newx = allx.dot(chol1)
+#newx
+
+cm2 = np.matrix([[1.0, 0.9, 0.9, 0.9],
+                 [0.9, 1.0, 0.8, 0.8],
+                 [0.9, 0.8, 1.0, 0.8],
+                 [0.9, 0.8, 0.8, 1.0]])
+
+chol2 = np.linalg.cholesky(cm2).T
+#chol2
+
+finalx = newx.dot(chol2) * np.std(x1) + np.mean(x1)
+#finalx
+
+X = pd.DataFrame({'x1' : [x[0] for x in finalx[:,0].tolist()],
+                  'x2' : [x[0] for x in finalx[:,1].tolist()],
+                  'x3' : [x[0] for x in finalx[:,2].tolist()],
+                  'x4' : [x[0] for x in finalx[:,3].tolist()]})
+#X
+
+otherX = pd.DataFrame({'x5':[x for x in np.random.normal(loc=0, scale=1, size = 60).tolist()]})
+
+for i in range(6, 6+50):
+  otherX['x'+str(i)] = [x for x in np.random.normal(loc=0, scale=1, size =60).tolist()]
+
+X = pd.concat([X, otherX], axis = 1)
+
+np.random.seed()
+y = -5 + X['x1'] + X['x2'] + X['x3'] + X['x4'] + np.random.normal(loc = 0, scale = 1, size = 60)
+
+cvfit = RidgeCV (alphas=[1e-3, 1e-2, 1e-1, 1], cv=3).fit(X.iloc[0:19,:], y[0:19])
+preds = cvfit.predict(X.iloc[20:39,:])
+s2 = sum([x**2 for x in y[20:39]-preds ])/len(preds)
+s2
+
+cvfit = LassoCV (alphas=[1e-3, 1e-2, 1e-1, 1], cv=3).fit(X.iloc[0:19,:], y[0:19])
+preds = cvfit.predict(X.iloc[20:39,:])
+s3 = sum([x**2 for x in y[20:39]-preds ])/len(preds)
+s3
